@@ -134,6 +134,7 @@ detect_os() {
     case "$ID" in
         ubuntu|debian) OS_FAMILY="debian" ;;
         centos|rhel|fedora|rocky|almalinux|ol|amzn) OS_FAMILY="rhel" ;;
+        arch|manjaro|endeavouros) OS_FAMILY="arch" ;;
         *)
             case "${ID_LIKE:-}" in
                 *debian*|*ubuntu*) OS_FAMILY="debian" ;;
@@ -148,6 +149,8 @@ detect_os() {
 pkg_update() {
     if [ "$OS_FAMILY" = "debian" ]; then
         $SUDO apt-get update -qq -y
+    elif [ "$OS_FAMILY" = "arch" ]; then
+        $SUDO pacman -Sy --noconfirm
     else
         $SUDO dnf makecache -q -y || true
     fi
@@ -157,6 +160,8 @@ pkg_install() {
     if [ "$OS_FAMILY" = "debian" ]; then
         export DEBIAN_FRONTEND=noninteractive
         $SUDO apt-get install -qq -y "$@"
+    elif [ "$OS_FAMILY" = "arch" ]; then
+        $SUDO pacman -S --noconfirm --needed "$@"
     else
         $SUDO dnf install -q -y "$@"
     fi
@@ -168,6 +173,8 @@ install_base_packages() {
     if [ "$OS_FAMILY" = "debian" ]; then
         pkg_install git openssl jq ca-certificates \
             apt-transport-https gnupg lsb-release
+    elif [ "$OS_FAMILY" = "arch" ]; then
+        pkg_install git openssl jq ca-certificates
     else
         pkg_install git openssl jq ca-certificates dnf-plugins-core
     fi
