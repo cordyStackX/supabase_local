@@ -402,6 +402,13 @@ fi
 
 cd "$target"
 
+if [ ! -f .env ]; then
+    [ -f .env.example ] || die "Could not create .env: .env.example is missing"
+    cp .env.example .env
+    chmod 600 .env
+    log "Created .env from .env.example"
+fi
+
 current_public_url=$(read_env SUPABASE_PUBLIC_URL)
 current_site_url=$(read_env SITE_URL)
 
