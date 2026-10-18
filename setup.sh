@@ -336,6 +336,18 @@ cleanup_src_tmp() {
 }
 trap cleanup_src_tmp EXIT
 
+confirm_delete() {
+    if [ "$NON_INTERACTIVE" = "1" ]; then
+        return 1
+    fi
+    printf "Target %s already exists. Delete it and continue? [y/N]: " "$1" > /dev/tty
+    read -r reply < /dev/tty
+    case "$reply" in
+        y|Y|yes|YES|Yes) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 read_env() {
     grep "^$1=" .env 2>/dev/null | head -n1 | cut -d= -f2-
 }
@@ -390,7 +402,12 @@ prepare_source
 
 target="$(pwd)/$PROJECT_DIR"
 if [ -e "$target" ]; then
-    die "Target $target already exists. Pick a different name with --project-dir"
+    if confirm_delete "$target"; then
+        log "Deleting existing project at $target"
+        rm -rf "$target"
+    else
+        die "Target $target already exists. Re-run interactively and answer 'y' to delete it, or pick a different name with --project-dir"
+    fi
 fi
 
 log "Creating project at $target"
