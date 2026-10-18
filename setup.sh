@@ -366,6 +366,20 @@ write_version_stamp() {
     log "Recorded base version in $STAMP_FILE (ref=$1)"
 }
 
+# Give Deno time to populate its cache and start the main service on a fresh
+# install. Upstream Compose files may not have this grace period yet.
+ensure_edge_functions_start_period() {
+    compose_file="$1"
+    [ -f "$compose_file" ] || return 0
+    sed -n '/container_name: supabase-edge-functions/,/^  [A-Za-z0-9_-][A-Za-z0-9_-]*:/p' "$compose_file" \
+        | grep -q 'start_period:' && return 0
+    sed -i.old \
+        '/container_name: supabase-edge-functions/,/^  [A-Za-z0-9_-][A-Za-z0-9_-]*:/{ /retries: 3/a\
+      start_period: 30s
+}' "$compose_file"
+    rm -f "$compose_file.old"
+}
+
 # --- Main ---
 
 log "Setup starting in $(pwd)"
@@ -413,6 +427,7 @@ fi
 log "Creating project at $target"
 mkdir -p "$target"
 cp -rf "$SRC_DIR/." "$target/"
+ensure_edge_functions_start_period "$target/docker-compose.yml"
 if [ -f "$target/.env.example" ] && [ ! -f "$target/.env" ]; then
     cp "$target/.env.example" "$target/.env"
 fi

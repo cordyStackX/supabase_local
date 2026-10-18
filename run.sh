@@ -131,7 +131,18 @@ CMD="${1:-help}"
 
 case "$CMD" in
     start|up)
-        exec docker compose up -d --wait "$@"
+        if docker compose up -d --wait "$@"; then
+            exit 0
+        else
+            rc=$?
+        fi
+        echo "ERROR: Docker Compose could not start the stack." >&2
+        docker compose ps >&2 || true
+        if [ -n "$(docker compose ps -q functions 2>/dev/null)" ]; then
+            echo "Recent edge-functions logs:" >&2
+            docker compose logs --no-color --tail=100 functions >&2 || true
+        fi
+        exit "$rc"
         ;;
     stop|down)
         exec docker compose down "$@"
